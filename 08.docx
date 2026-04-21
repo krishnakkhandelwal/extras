@@ -1,0 +1,56 @@
+from transformers import pipeline
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+import matplotlib.pyplot as plt
+import pandas as pd
+import nltk
+
+nltk.download('punkt')
+
+# Load translation model (English → French)
+translator = pipeline("translation_en_to_fr")
+
+# Sample dataset (source + reference translations)
+data = [
+    ("Machine learning is powerful", "L'apprentissage automatique est puissant"),
+    ("I love artificial intelligence", "J'aime l'intelligence artificielle"),
+    ("This is a good example", "Ceci est un bon exemple"),
+    ("Natural language processing is interesting", "Le traitement du langage naturel est intéressant")
+]
+
+# Separate inputs
+sources = [d[0] for d in data]
+references = [d[1] for d in data]
+
+# Generate translations
+predictions = [translator(text)[0]['translation_text'] for text in sources]
+
+# Compute BLEU scores
+smooth = SmoothingFunction().method1
+bleu_scores = []
+
+for ref, pred in zip(references, predictions):
+    score = sentence_bleu([ref.split()], pred.split(), smoothing_function=smooth)
+    bleu_scores.append(score)
+
+# Create DataFrame
+df = pd.DataFrame({
+    "Source": sources,
+    "Reference": references,
+    "Predicted": predictions,
+    "BLEU Score": bleu_scores
+})
+
+print("\nTranslation Results:\n")
+print(df)
+
+# ---- Average BLEU ----
+avg_bleu = sum(bleu_scores) / len(bleu_scores)
+print("\nAverage BLEU Score:", round(avg_bleu, 4))
+
+# ---- Plot BLEU scores ----
+plt.figure()
+plt.bar(range(len(bleu_scores)), bleu_scores)
+plt.title("BLEU Score per Sentence")
+plt.xlabel("Sentence Index")
+plt.ylabel("BLEU Score")
+plt.show()
